@@ -1,4 +1,4 @@
-# scattered-data-interpolation
+# unstructured-data-interpolation
 
 This is a replica of Scipy's griddata implementation.
 
@@ -28,5 +28,5 @@ and link .so files libqhullstatic_r, libqhullstatic, and qhull_r.
 - Different grid interpolation procedures
 - 3D convex hulls and interpolation procedures
 - possible optimization applications
-- Unit test cases
+- Add delaunator(https://github.com/mapbox/delaunator) translation
 
