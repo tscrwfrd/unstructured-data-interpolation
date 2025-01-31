@@ -1,7 +1,7 @@
 CC = gcc
 
-FLAGS   = -std=c99 -c -fPIC -g -Wall -include ../libs/qhull-2020.2/src/libqhull_r/qhull_ra.h
-LFLAGS  = -L../libs/qhull-2020.2/lib -lqhull_r -lqhullstatic_r -lqhullstatic -lm
+FLAGS   = -std=c99 -c -fPIC -g -Wall -include ../qhull/src/libqhull_r/qhull_ra.h
+LFLAGS  = -L../qhull/lib -lqhull_r -lqhullstatic_r -lqhullstatic -lm
 #OUTPUT  = bin/libgriddata.so
 OUTPUT  = sdi.exe
 OBJECTS = \

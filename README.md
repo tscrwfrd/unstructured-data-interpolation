@@ -1,10 +1,10 @@
-# scattered-data-interpolation
+# unstructured-data-interpolation
 
 This is a replica of Scipy's griddata implementation.
 
-The scatttered-data-interpolation (SDI) is current work that provides 
+The scatttered-data-interpolation (SDI) aims to provide 
 the same functionality of Scipy's interpolation functionality. Current 
-devlopement efforts is only on linux and tested with gcc 4.8.5. **THIS IS A WORK IN PROGRESS.**
+devlopement efforts is only on linux. **THIS IS A WORK IN PROGRESS.**
 
 ## Installation prerequisites
 
@@ -29,4 +29,5 @@ and link .so files libqhullstatic_r, libqhullstatic, and qhull_r.
 - 3D convex hulls and interpolation procedures
 - possible optimization applications
 - Unit test cases
+- Add [delaunator](https://github.com/mapbox/delaunator) translation
 

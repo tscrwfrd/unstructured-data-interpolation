@@ -1,3 +1,5 @@
+#include<stdbool.h>
+
 #include "../include/interpolation.h"
 #include "../qhull/src/libqhull_r/qhull_ra.h"
 
