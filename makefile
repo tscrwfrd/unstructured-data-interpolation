@@ -6,6 +6,7 @@ OUTPUT  = udi.exe
 
 OBJECTS = \
 	build/interpolation.o \
+	build/delaunator.o \
 	build/main.o
 
 all: $(OBJECTS)
@@ -23,6 +24,11 @@ build/interpolation.o: src/interpolation.c
 	mkdir -p bin
 	mkdir -p build
 	$(CC) $(FLAGS) src/interpolation.c -o build/interpolation.o
+
+build/delaunator.o: src/delaunator.c
+	mkdir -p bin
+	mkdir -p build
+	$(CC) $(FLAGS) src/delaunator.c -o build/delaunator.o
 
 clean:
 	rm -Rf $(OUTPUT) $(OBJECTS) $(OUTPUT_SO) build

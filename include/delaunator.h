@@ -108,20 +108,4 @@ Delaunator* delaunator_create(double* coords, int n_points);
 void update(Delaunator* del);
 void delaunator_destroy(Delaunator* d);
 
-static double orient2d(double pa0, double pa1, double pb0, double pb1, double pc0, double pc1);
-static double orient2dadapt(double pa0, double pa1, double pb0, double pb1, double pc0, double pc1, double detsum);
-static int in_circle(const double ax, const double ay, const double bx, const double by, 
-                    const double cx, const double cy, const double px, const double py);
-static void quicksort(int* ids, double* dists, int left, int right);
-static double circumradius(double ax, double ay, double bx, double by, double cx, double cy);
-static double* circumcenter(double ax, double ay, double bx, double by, double cx, double cy);
-static double dist(double ax, double ay, double bx, double by);
-static double pseudo_angle(double dx, double dy);
-static void swap(int *arr, int i, int j);
-static int hash_key(double x, double y, Delaunator* d);
-static int add_triangle(int i0, int i1, int i2, int a, int b, int c, Delaunator* d);
-static int legalize(int a, Delaunator* d);
-static void link(int a, int b, Delaunator* d);
-static double estimate(int elen, double* e);
-static double* circumcenter(double ax, double ay, double bx, double by, double cx, double cy);
 #endif // DELAUNATOR_H

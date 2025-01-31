@@ -1,6 +1,10 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "../include/interpolation.h"
-#include "stdio.h"
-#include "stdlib.h"
+#include "../include/delaunator.h"
+#include "../../qhull/src/libqhull_r/libqhull_r.h"
+
 
 //   EXAMPLE 1 INPUT POINTS AND FACETS
 // +++++++++++++++++++++++++++++++++++++++++++++++++
@@ -36,6 +40,7 @@
 
 void example1();
 void example2();
+void example3();
 double* create_points1();
 double* create_points2();
 double* create_func_values1();
@@ -47,6 +52,7 @@ int main()
 {  
    example1();
    example2();
+   example3();
 }
 
 
@@ -107,6 +113,63 @@ void example2()
    free(ipts);
    free(ipval);
    
+}
+
+void example3()
+{
+
+   double* pts = create_points1();
+   double* pval = create_func_values1();
+   double fill_value = 9.5;
+   
+   double* ipts = malloc(sizeof(double*)*6);
+   ipts[0] = 3.0;
+   ipts[1] = 0.0;
+   ipts[2] = 1.0;
+   ipts[3] = 4.2;
+   ipts[4] = 1.0;
+   ipts[5] = 4.1;
+   
+   double* ipval = malloc(sizeof(double*)*3);
+   ipval[0] = 0.0;
+   ipval[1] = 0.0;
+   ipval[2] = 0.0;
+   
+   griddata(pts, pval, 7, ipts, ipval, 3, fill_value);
+
+   Delaunator* d = delaunator_create(pts, 14);
+   update(d);
+   printf("val::: %d \n", d->hull[0]);
+   printf("val::: %d \n", d->hull[1]);
+   printf("val::: %d \n", d->hull[2]);
+   printf("val::: %d \n", d->hull[3]);
+   printf("val::: %d \n", d->hull[4]);
+   printf("val::: %d \n", d->hull[5]);
+   printf("val::: %d \n", d->hull[6]);
+   printf("val::: %d \n", d->hull[7]);
+   printf("val::: %d \n", d->hull[8]);
+   printf("val::: %d \n", d->hull[9]);
+   printf("val::: %d \n", d->hull[10]);
+   printf("val::: %d \n", d->hull[11]);
+   printf("val::: %d \n", d->hull[12]);
+   printf("val::: %d \n", d->hull[13]);
+   printf("val::: %d \n", d->hull[14]);
+   printf("val::: %d \n", d->hull[15]);
+
+   printf("  :::>> %d \n", d->hullSize);
+   
+   delaunator_destroy(d);
+   
+   printf(" ----  ----  ----  ---- ----  ---- \n");
+   printf("interpolated value 1: %lf \n", ipval[0]);
+   printf("interpolated value 2: %lf \n", ipval[1]);
+   printf("interpolated value 3: %lf \n", ipval[2]);
+   
+   free(pts);
+   free(pval);
+   free(ipts);
+   free(ipval);
+
 }
 
 
