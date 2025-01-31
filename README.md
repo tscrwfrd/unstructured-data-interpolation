@@ -2,31 +2,19 @@
 
 This is a replica of Scipy's griddata implementation.
 
-The scatttered-data-interpolation (SDI) aims to provide 
+The unstructured-data-interpolation (udi) aims to provide 
 the same functionality of Scipy's interpolation functionality. Current 
-devlopement efforts is only on linux. **THIS IS A WORK IN PROGRESS.**
+devlopement efforts is only on linux and is tested with gcc version 14.2.1. **THIS IS A WORK IN PROGRESS.**
 
 ## Installation prerequisites
 
-The following is necessary to use SDI
+[QHull](http://www.qhull.org/) is necessary to compile udi.
 
-- [GNU Make][gmake] 
+[qhull github]: https://github.com/qhull/qhull
 
-- [GCC compiler][gcc]
+### Qhull steps
 
-- [QHull][qhull]
-
-
-[gmake]: https://www.gnu.org/software/make/
-[gcc]: https://gcc.gnu.org/
-[qhull]: http://www.qhull.org/
-
-For QHull, run basic generic makefile with default settings.  Once compiled, SDI needs to know how to include "qhull_ra.h"
-and link .so files libqhullstatic_r, libqhullstatic, and qhull_r.
-
-### QHULL steps
-
-- clone [qhull](https://github.com/qhull/qhull) within the root directory.
+- Clone [qhull](https://github.com/qhull/qhull) within the root directory.
 - `cd` into `qhull` directory and run `make` and `make test`.
 - `export LD_LIBRARY_PATH=$PWD/lib:$LD_LIBRARY_PATH`
 - Now you should be able to run `make` in the root directory and then run `./sdi.exe`.
