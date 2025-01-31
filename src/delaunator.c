@@ -51,8 +51,8 @@ void update(Delaunator* del) {
 
     double *coords = del->coords;
     for (int i = 0; i < n; i++) {
-        const x = coords[2 * i];
-        const y = coords[2 * i + 1];
+        const double x = coords[2 * i];
+        const double y = coords[2 * i + 1];
         if (x < min_x) min_x = x;
         if (y < min_y) min_y = y;
         if (x > max_x) max_x = x;
@@ -102,7 +102,6 @@ void update(Delaunator* del) {
 
     double i2x = coords[2 * i2];
     double i2y = coords[2 * i2 + 1];
-    double min_radius = INFINITY;
 
     if (min_radius == INFINITY) {
         // order collinear points by dx (or dy if all x are identical)
@@ -134,9 +133,9 @@ void update(Delaunator* del) {
 
     // swap the order of the seed points for counter-clockwise orientation
     if (orient2d(i0x, i0y, i1x, i1y, i2x, i2y) < 0) {
-        const i = i1;
-        const x = i1x;
-        const y = i1y;
+        const double i = i1;
+        const double x = i1x;
+        const double y = i1y;
         i1 = i2;
         i1x = i2x;
         i1y = i2y;
@@ -234,7 +233,7 @@ void update(Delaunator* del) {
             }
             
             // Add triangle and legalize
-            t = addTriangle(n, i, q, del->hullTri[i], -1, del->hullTri[n], del);
+            t = add_triangle(n, i, q, del->hullTri[i], -1, del->hullTri[n], del);
             del->hullTri[i] = legalize(t + 2, del);
             // mark as removed
             del->hullNext[n] = n;  
@@ -250,7 +249,7 @@ void update(Delaunator* del) {
                     break;
                 }
 
-                t = addTriangle(q, i, e, -1, del->hullTri[e], del->hullTri[q], del);
+                t = add_triangle(q, i, e, -1, del->hullTri[e], del->hullTri[q], del);
                 legalize(t + 2, del);
                 del->hullTri[q] = t;
                 // mark as removed
@@ -331,7 +330,7 @@ static int legalize(int a, Delaunator* d){
         const unsigned int pl = d->triangles[al];
         const unsigned int p1 = d->triangles[bl];
 
-        const unsigned int illegal = inCircle(
+        const unsigned int illegal = in_circle(
             d->coords[2 * p0], d->coords[2 * p0 + 1],
             d->coords[2 * pr], d->coords[2 * pr + 1],
             d->coords[2 * pl], d->coords[2 * pl + 1],
@@ -450,10 +449,81 @@ static double orient2d(double pa0, double pa1, double pb0,
     return orient2dadapt(pa0, pa1, pb0, pb1, pc0, pc1, detsum);
 }
 
+
+int fast_expansion_sum_zeroelim(int elen, double *e, int flen, double *f, double *h){
+    /* h cannot be e or f. */
+  double Q;
+  INEXACT double Qnew;
+  INEXACT double hh;
+  INEXACT double bvirt;
+  double avirt, bround, around;
+  int eindex, findex, hindex;
+  double enow, fnow;
+
+  enow = e[0];
+  fnow = f[0];
+  eindex = findex = 0;
+  if ((fnow > enow) == (fnow > -enow)) {
+    Q = enow;
+    enow = e[++eindex];
+  } else {
+    Q = fnow;
+    fnow = f[++findex];
+  }
+  hindex = 0;
+  if ((eindex < elen) && (findex < flen)) {
+    if ((fnow > enow) == (fnow > -enow)) {
+      Fast_Two_Sum(enow, Q, Qnew, hh);
+      enow = e[++eindex];
+    } else {
+      Fast_Two_Sum(fnow, Q, Qnew, hh);
+      fnow = f[++findex];
+    }
+    Q = Qnew;
+    if (hh != 0.0) {
+      h[hindex++] = hh;
+    }
+    while ((eindex < elen) && (findex < flen)) {
+      if ((fnow > enow) == (fnow > -enow)) {
+        Two_Sum(Q, enow, Qnew, hh);
+        enow = e[++eindex];
+      } else {
+        Two_Sum(Q, fnow, Qnew, hh);
+        fnow = f[++findex];
+      }
+      Q = Qnew;
+      if (hh != 0.0) {
+        h[hindex++] = hh;
+      }
+    }
+  }
+  while (eindex < elen) {
+    Two_Sum(Q, enow, Qnew, hh);
+    enow = e[++eindex];
+    Q = Qnew;
+    if (hh != 0.0) {
+      h[hindex++] = hh;
+    }
+  }
+  while (findex < flen) {
+    Two_Sum(Q, fnow, Qnew, hh);
+    fnow = f[++findex];
+    Q = Qnew;
+    if (hh != 0.0) {
+      h[hindex++] = hh;
+    }
+  }
+  if ((Q != 0.0) || (hindex == 0)) {
+    h[hindex++] = Q;
+  }
+  return hindex;
+}
+
+
 /**
  * 
  */
-static double orient2adapt(double pa0, double pa1, double pb0, 
+static double orient2dadapt(double pa0, double pa1, double pb0, 
                     double pb1, double pc0, double pc1, double detsum){
     double acx, acy, bcx, bcy;
     double acxtail, acytail, bcxtail, bcytail;
@@ -535,6 +605,20 @@ static double orient2adapt(double pa0, double pa1, double pb0,
     Dlength = fast_expansion_sum_zeroelim(C2length, C2, 4, u, D);
 
     return(D[Dlength - 1]);
+}
+
+/**
+ * 
+ */
+static double estimate(int elen, double* e){
+  double Q;
+  int eindex;
+
+  Q = e[0];
+  for (eindex = 1; eindex < elen; eindex++) {
+    Q += e[eindex];
+  }
+  return Q;
 }
 
 /**
@@ -628,7 +712,7 @@ static double circumradius(double ax, double ay, double bx, double by, double cx
 /**
  * 
  */
-static double* circumcenter(ax, ay, bx, by, cx, cy) {
+static double* circumcenter(double ax, double ay, double bx, double by, double cx, double cy) {
     double dx = bx - ax;
     double dy = by - ay;
     double ex = cx - ax;
@@ -666,8 +750,8 @@ static double pseudo_angle(double dx, double dy) {
 /**
  * 
  */
-static void swap(double *arr, int i, int j) {
-    const double tmp = arr[i];
+static void swap(int *arr, int i, int j) {
+    const int tmp = arr[i];
     arr[i] = arr[j];
     arr[j] = tmp;
 }
@@ -675,7 +759,7 @@ static void swap(double *arr, int i, int j) {
 /**
  * 
  */
-static void delaunator_destroy(Delaunator* d) {
+void delaunator_destroy(Delaunator* d) {
     free(d->triangles);
     free(d->halfedges);
     free(d->hullPrev);
