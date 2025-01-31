@@ -14,10 +14,10 @@ devlopement efforts is only on linux and is tested with gcc version 14.2.1. **TH
 
 ### Qhull steps
 
-- Clone [qhull](https://github.com/qhull/qhull) within the root directory.
+- Clone [qhull](https://github.com/qhull/qhull) within the `lib` directory.
 - `cd` into `qhull` directory and run `make` and `make test`.
 - `export LD_LIBRARY_PATH=$PWD/lib:$LD_LIBRARY_PATH`
-- Now you should be able to run `make` in the root directory and then run `./sdi.exe`.
+- Now you should be able to run `make` in the project root directory and then run `./udi.exe`.
 
 ## Delaunator
 

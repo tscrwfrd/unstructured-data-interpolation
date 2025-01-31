@@ -1,7 +1,7 @@
 #include<stdbool.h>
 
 #include "../include/interpolation.h"
-#include "../qhull/src/libqhull_r/qhull_ra.h"
+#include "../lib/qhull/src/libqhull_r/qhull_ra.h"
 
 /**
  * Linear interpolation using barycentric coordinates

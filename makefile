@@ -1,31 +1,31 @@
 CC = gcc
+FLAGS   = -std=c99 -c -fPIC -g -Wall -include lib/qhull/src/libqhull_r/qhull_ra.h
+LFLAGS  = -L lib/qhull/lib -lqhull_r -lqhullstatic_r -lqhullstatic -lm
+OUTPUT_SO  = bin/libgriddata.so
+OUTPUT  = udi.exe
 
-FLAGS   = -std=c99 -c -fPIC -g -Wall -include ../qhull/src/libqhull_r/qhull_ra.h
-LFLAGS  = -L../qhull/lib -lqhull_r -lqhullstatic_r -lqhullstatic -lm
-#OUTPUT  = bin/libgriddata.so
-OUTPUT  = sdi.exe
 OBJECTS = \
-	obj/interpolation.o \
-	obj/main.o
+	build/interpolation.o \
+	build/main.o
 
 all: $(OBJECTS)
 	mkdir -p bin
-	mkdir -p obj
+	mkdir -p build
 	$(CC) -g $(OBJECTS) -o $(OUTPUT) $(LFLAGS)
-#	$(CC) -g $(OBJECTS) -shared -o $(OUTPUT) $(LFLAGS)
+	$(CC) -g $(OBJECTS) -shared -o $(OUTPUT_SO) $(LFLAGS)
 
-obj/main.o: src/main.c
+build/main.o: src/main.c
 	mkdir -p bin
-	mkdir -p obj
-	$(CC) $(FLAGS) src/main.c -o obj/main.o
+	mkdir -p build
+	$(CC) $(FLAGS) src/main.c -o build/main.o
 
-obj/interpolation.o: src/interpolation.c
+build/interpolation.o: src/interpolation.c
 	mkdir -p bin
-	mkdir -p obj
-	$(CC) $(FLAGS) src/interpolation.c -o obj/interpolation.o
+	mkdir -p build
+	$(CC) $(FLAGS) src/interpolation.c -o build/interpolation.o
 
 clean:
-	rm -Rf $(OUTPUT) $(OBJECTS)
+	rm -Rf $(OUTPUT) $(OBJECTS) $(OUTPUT_SO) build
 
 
 
