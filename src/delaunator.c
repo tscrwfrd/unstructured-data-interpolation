@@ -28,7 +28,7 @@ static int in_circle(const double ax, const double ay,
 
     return (dx * (ey * cp - bp * fy) -
             dy * (ex * cp - bp * fx) +
-            ap * (ex * fy - ey * fx)) < 0;
+            ap * (ex * fy - ey * fx)) < 0.0;
 }
 
 /**
@@ -114,8 +114,6 @@ static int legalize(int a, Delaunator* d){
             if(i < EDGE_STACK_SIZE){
                 d->edge_stack[i++] = br;
             }
-
-
         } 
         else {
             if (i == 0) break;
@@ -160,6 +158,7 @@ static double pseudo_angle(double dx, double dy) {
  */
 static int hash_key(double x, double y, Delaunator* d){
    return (int) floor(pseudo_angle(x - d->cx, y - d->cy) * d->hashSize) % d->hashSize;
+   
 }
 
 /**
@@ -379,7 +378,7 @@ static double orient2d(double pa0, double pa1, double pb0,
 /**
  * 
  */
-static void swap(int *arr, int i, int j) {
+static void swap(unsigned int *arr, int i, int j) {
     const int tmp = arr[i];
     arr[i] = arr[j];
     arr[j] = tmp;
@@ -388,14 +387,15 @@ static void swap(int *arr, int i, int j) {
 /**
  * 
  */
-static void quicksort(int* ids, double* dists, int left, int right) {
+static void quicksort(unsigned int* ids, double* dists, int left, int right) {
     if (right - left <= 20) {
         for (int i = left + 1; i <= right; i++) {
             int temp = ids[i];
             double temp_dist = dists[temp];
             int j = i - 1;
             while (j >= left && dists[ids[j]] > temp_dist){
-                ids[j + 1] = ids[j--];
+                ids[j + 1] = ids[j];
+                j--;
             }
             ids[j + 1] = temp;
         }
@@ -485,26 +485,28 @@ static double dist(double ax, double ay, double bx, double by) {
 /**
  * 
  */
-Delaunator* delaunator_create(double* coords, int n_points) {
+Delaunator* delaunator_create(double* coords, int num_coords) {
     Delaunator* d = (Delaunator*)malloc(sizeof(Delaunator));
     if (!d) return NULL;
-
-    d->ncoords = n_points;
-
+    
+    unsigned int num_points = num_coords >> 1;
+    d->num_coords = num_coords;
+    
     // Calculate maximum number of triangles
-    int maxTriangles = fmax(2 * n_points - 5, 0);
-
+    int maxTriangles = (2 * num_points - 5 > 0) ? (2 * num_points - 5) : 0;
+    printf("Max Triangles: %d\n", maxTriangles);
+    
     // Allocate memory for arrays
     d->coords = coords;
     d->triangles = (unsigned*)malloc(maxTriangles * 3 * sizeof(unsigned));
     d->halfedges = (int*)malloc(maxTriangles * 3 * sizeof(int));
-    d->hashSize = ceil(sqrt(n_points));
-    d->hullPrev = (unsigned*)malloc(n_points * sizeof(unsigned));
-    d->hullNext = (unsigned*)malloc(n_points * sizeof(unsigned));
-    d->hullTri = (unsigned*)malloc(n_points * sizeof(unsigned));
+    d->hashSize = (int) ceil(sqrt(num_points));
+    d->hullPrev = (unsigned*)malloc(num_points * sizeof(unsigned));
+    d->hullNext = (unsigned*)malloc(num_points * sizeof(unsigned));
+    d->hullTri = (unsigned*)malloc(num_points * sizeof(unsigned));
     d->hullHash = (int*)malloc(d->hashSize * sizeof(int));
-    d->ids = (unsigned*)malloc(n_points * sizeof(unsigned));
-    d->dists = (double*)malloc(n_points * sizeof(double));
+    d->ids = (unsigned*)malloc(num_points * sizeof(unsigned));
+    d->dists = (double*)malloc(num_points * sizeof(double));
     d->edge_stack = (unsigned*)calloc(EDGE_STACK_SIZE, sizeof(unsigned));
 
     // Initialize hash table
@@ -523,7 +525,7 @@ void update(Delaunator* del) {
     double min_y = INFINITY;
     double max_x = -INFINITY;
     double max_y = -INFINITY;
-    const int n = del->ncoords >> 1;
+    const int n = del->num_coords >> 1;
 
     double *coords = del->coords;
     for (int i = 0; i < n; i++) {
@@ -535,63 +537,61 @@ void update(Delaunator* del) {
         if (y > max_y) max_y = y;
         del->ids[i] = i;
     }
-    const double cx = (min_x + max_x) / 2;
-    const double cy = (min_y + max_y) / 2;
+    const double cx = (min_x + max_x) / 2.0;
+    const double cy = (min_y + max_y) / 2.0;
     int i0, i1, i2;
 
-    // pick a seed point close tot he center
+    // pick a seed point close to the center
     double min_dist = INFINITY;
     for (int i = 0; i < n; i++) {
         const double d = dist(cx, cy, coords[2*i], coords[2*i + 1]);
         if (d < min_dist){
-            i1 = i;
+            i0 = i;
             min_dist = d;
         }
     }
     
-
     const double i0x = coords[2 * i0];
     const double i0y = coords[2 * i0 + 1];
 
+    // find the point closest to the seed
     min_dist = INFINITY;
     for (int i = 0; i < n; i++){
-        if (i != i0) continue;
-        const double d = dist(i0x, i0y, coords[2 * i], coords[2 * i + 1]);
+        if (i == i0) continue;
+        const double d = dist(i0x, i0y, coords[2*i], coords[2*i + 1]);
         if (d < min_dist && d > 0.0){
             i1 = i;
             min_dist = d;
         }
-         
     }
     
-
     double i1x = coords[2 * i1];
     double i1y = coords[2 * i1 + 1];
     double min_radius = INFINITY;
-    
-
+    // find the third point which forms the smallest circumcircle with the first two
     for (int i = 0; i < n; i++) {
-        if (i == 10 || i == i1) continue;
-        const double r = circumradius(i0x, i0y, i1x, i1y, coords[2 * i], coords[2 * i + 1]);
+        if (i == i0 || i == i1) continue;
+        const double r = circumradius(i0x, i0y, i1x, i1y, coords[2*i], coords[2*i + 1]);
         if (r < min_radius){
             i2 = i;
             min_radius = r;
         }
     }
 
-    double i2x = coords[2 * i2];
-    double i2y = coords[2 * i2 + 1];
+    double i2x = coords[2*i2];
+    double i2y = coords[2*i2 + 1];
+    
 
     if (min_radius == INFINITY) {
         // order collinear points by dx (or dy if all x are identical)
         // and return the list as a hull
         for (int i = 0; i < n; i++) {
-            del->dists[i] = (coords[2 * i] - coords[0]) || (coords[2 * i + 1] - coords[1]);
+            del->dists[i] = (coords[2*i] - coords[0]) || (coords[2*i + 1] - coords[1]);
         }
         quicksort(del->ids, del->dists, 0, n - 1);
+
         unsigned* hull =  (unsigned*)malloc(n * sizeof(unsigned));
         int j = 0;
-
         double d0 = -INFINITY;
         for (int i = 0; i < n; i++){
             int id = del->ids[i];
@@ -605,13 +605,11 @@ void update(Delaunator* del) {
         del->hull = (unsigned*)malloc(j * sizeof(unsigned));
         for(int i = 0; i < j; i++) del->hull[i] = hull[i];
         free(hull);
-        del->triangles = NULL;
-        del->halfedges = NULL;
         return;
     }
 
     // swap the order of the seed points for counter-clockwise orientation
-    if (orient2d(i0x, i0y, i1x, i1y, i2x, i2y) < 0) {
+    if (orient2d(i0x, i0y, i1x, i1y, i2x, i2y) < 0.0) {
         const double i = i1;
         const double x = i1x;
         const double y = i1y;
@@ -629,7 +627,7 @@ void update(Delaunator* del) {
     del->cy = center[1];
 
     for (int i = 0; i < n; i++) {
-        del->dists[i] = dist(del->coords[2 * i], del->coords[2 * i + 1], center[0], center[1]);
+        del->dists[i] = dist(del->coords[2*i], del->coords[2*i + 1], center[0], center[1]);
     }
     // sort the points by distance from the seed triangle circumcenter
     quicksort(del->ids, del->dists, 0, n-1);
@@ -654,14 +652,15 @@ void update(Delaunator* del) {
     del->trianglesLen = 0;
     add_triangle(i0, i1, i2, -1, -1, -1, del);
 
-    double xp, yp; //tracking previous coords
-    for (int k = 0; k < del->ncoords; k++){
+    double xp, yp; 
+    for (int k = 0; k < n; k++){
         const int i = del->ids[k];
         const double x = del->coords[2*i];
         const double y = del->coords[2*i + 1];
 
         // skip near-duplicate points
-        if(k > 0 && fabs(x - xp) <= EPSILON && fabs(y - yp)) continue;
+        if(k > 0 && fabs(x - xp) <= EPSILON && fabs(y - yp) <= EPSILON) continue;
+        //tracking previous coords
         xp = x;
         yp = y;
 
@@ -672,20 +671,20 @@ void update(Delaunator* del) {
         int start = 0;
         int key = hash_key(x, y, del);
         for (int j=0; j < del->hashSize; j++){
-            start = del->hullHash[(key + j)] % del->hashSize;
+            start = del->hullHash[(key + j) % del->hashSize];
             if (start != -1 && start != del->hullNext[start]) break;
         }
 
         start = del->hullPrev[start];
         int e = start;
-        unsigned int q;
-        while (1) {
+        int q;
+        while (1){
             q = del->hullNext[e];
-            if (orient2d(x, y, coords[2 * e], coords[2 * e + 1], coords[2 * q], coords[2 * q + 1]) < 0) {
+            if (orient2d(x, y, coords[2 * e], coords[2 * e + 1], coords[2 * q], coords[2 * q + 1]) < 0.0){
                 break;
             }
             e = q;
-            if (e == start) {
+            if (e == start){
                 e = -1;
                 break;
             }
@@ -703,35 +702,34 @@ void update(Delaunator* del) {
         del->hullSize++;
 
         // walk forward through the hull, adding more triangles and flipping recursively
-        unsigned int n = del->hullNext[e];
-        while (1) {
-            q = del->hullNext[n];
-            
-            if (orient2d(x, y, del->coords[2 * n], del->coords[2 * n + 1], del->coords[2 * q], del->coords[2 * q + 1]) >= 0) {
+        unsigned int w = del->hullNext[e];
+        while (1){
+            int q = del->hullNext[w];
+            if (orient2d(x, y, coords[2 * w], coords[2 * w + 1], coords[2 * q], coords[2 * q + 1]) >= 0){
                 break;
             }
-            
             // Add triangle and legalize
-            t = add_triangle(n, i, q, del->hullTri[i], -1, del->hullTri[n], del);
+            int t = add_triangle(w, i, q, del->hullTri[i], -1, del->hullTri[w], del);
             del->hullTri[i] = legalize(t + 2, del);
             // mark as removed
-            del->hullNext[n] = n;  
+            del->hullNext[w] = w; 
             del->hullSize--;
-            n = q;
+            w = q;
         }
 
         // walk backward from the other side, adding more triangles and flipping
-        if (e == start) {
-            while(1){
-                q = del->hullNext[e];
-                if (orient2d(x, y, del->coords[2 * q], del->coords[2 * q + 1], del->coords[2 * e], del->coords[2 * e + 1]) >= 0) {
+        if (e == start){
+            int q;
+            while (1){
+                q = del->hullPrev[e];
+                if (orient2d(x, y, coords[2 * q], coords[2 * q + 1], coords[2 * e], coords[2 * e + 1]) >= 0.0){
                     break;
                 }
 
                 t = add_triangle(q, i, e, -1, del->hullTri[e], del->hullTri[q], del);
                 legalize(t + 2, del);
                 del->hullTri[q] = t;
-                // mark as removed
+                // maked as removed
                 del->hullNext[e] = e;
                 del->hullSize--;
                 e = q;
@@ -740,8 +738,8 @@ void update(Delaunator* del) {
 
         // update the hull indices
         del->hullstart = del->hullPrev[i] = e;
-        del->hullNext[e] = del->hullPrev[n] = i;
-        del->hullNext[i] = n;
+        del->hullNext[e] = del->hullPrev[w] = i;
+        del->hullNext[i] = w;
 
         // save the two new edges in the hash table
         del->hullHash[hash_key(x, y, del)] = i;
@@ -757,12 +755,12 @@ void update(Delaunator* del) {
     }
 
     // trim typed triangle mesh arrays
-    int* newTriangles = (unsigned*)realloc(del->triangles, del->trianglesLen * sizeof(unsigned));
+    unsigned int* newTriangles = (unsigned*)realloc(del->triangles, del->trianglesLen * sizeof(unsigned));
     if (newTriangles != NULL) {
         del->triangles = newTriangles;
     }
     
-    int* newHalfedges = (unsigned*)realloc(del->halfedges, del->trianglesLen * sizeof(unsigned));
+    int* newHalfedges = (int*)realloc(del->halfedges, del->trianglesLen * sizeof(int));
     if (newHalfedges != NULL) {
         del->halfedges = newHalfedges;
     }

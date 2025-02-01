@@ -83,7 +83,7 @@
   Two_One_Diff(_j, _0, b1, x3, x2, x1)
 
 typedef struct {
-    int ncoords;
+    int num_coords;
     int hullstart;
     double* coords;        // Array of coordinates [x0, y0, x1, y1, ...]
     unsigned* triangles;   // Array of triangle indices
