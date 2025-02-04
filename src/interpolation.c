@@ -1,7 +1,24 @@
-#include<stdbool.h>
-
 #include "../include/interpolation.h"
+
+#include <stdbool.h>
+
 #include "../lib/qhull/src/libqhull_r/qhull_ra.h"
+
+void print_triangles_facets(qhT *qh) {
+  facetT *facet = qh->facet_list;
+  while (facet->id != 0) {
+    if (!facet->upperdelaunay) {
+      vertexT *v1 = facet->vertices->e[0].p;
+      vertexT *v2 = facet->vertices->e[1].p;
+      vertexT *v3 = facet->vertices->e[2].p;
+      int h1 = qh_pointid(qh, v1->point);
+      int h2 = qh_pointid(qh, v2->point);
+      int h3 = qh_pointid(qh, v3->point);
+      printf("%d -> %d -> %d \n", h1, h2, h3);
+    }
+    facet = facet->next;
+  }
+}
 
 /**
  * Linear interpolation using barycentric coordinates
@@ -13,13 +30,9 @@
  * @param pval     array of values for each 2D points
  * @param fill_value fill value for points outisde convex hull
  */
-static void linear_interp2d_facet(qhT *qh,
-                                  double* ipoints,
-                                  double* ipval,
-                                  int inum_pts,
-                                  double* pval,
+static void linear_interp2d_facet(qhT *qh, double *ipoints, double *ipval,
+                                  int inum_pts, double *pval,
                                   double fill_value) {
-
   // facet reference
   facetT *facet;
 
@@ -34,10 +47,9 @@ static void linear_interp2d_facet(qhT *qh,
 
   // loop through all coordinates!
   for (int i = 0; i < ncoords; i += 2) {
-
     single_point[0] = ipoints[i];
     single_point[1] = ipoints[i + 1];
-    int idx = i / 2;
+    const int idx = i >> 1;
 
     // facet list reference
     facet = qh->facet_list;
@@ -49,9 +61,7 @@ static void linear_interp2d_facet(qhT *qh,
     ipval[idx] = -9999.0;
 
     while (facet->id != 0) {
-
       if (!facet->upperdelaunay) {
-
         double tript_x[3];
         double tript_y[3];
 
@@ -61,11 +71,10 @@ static void linear_interp2d_facet(qhT *qh,
           tript_x[count] = vertex->point[0];
           tript_y[count] = vertex->point[1];
           ++count;
-        }// end collecting triangle points
+        } // end collecting triangle points
 
         // More efficient with this procedure:
         // https://math.stackexchange.com/questions/51326/determining-if-an-arbitrary-point-lies-inside-a-triangle-defined-by-three-points
-
 
         double x = single_point[0];
         double y = single_point[1];
@@ -95,82 +104,70 @@ static void linear_interp2d_facet(qhT *qh,
            L3 = 1.0 - L1 - L2
          */
 
-        double denom = y2*x1 - y2*x3 - y3*x1 + x3*y1 - x2*y1 + x2*y3;
+        double denom =
+            y2 * x1 - y2 * x3 - y3 * x1 + x3 * y1 - x2 * y1 + x2 * y3;
 
-        double L1 = y2*x - y2*x3 - y3*x + x3*y - x2*y + x2*y3;
-        L1 = L1/denom;
+        double L1 = y2 * x - y2 * x3 - y3 * x + x3 * y - x2 * y + x2 * y3;
+        L1 = L1 / denom;
 
-        double L2 = y3*x - y1*x + y1*x3 + x1*y - x1*y3 - x3*y;
-        L2 = L2/denom;
+        double L2 = y3 * x - y1 * x + y1 * x3 + x1 * y - x1 * y3 - x3 * y;
+        L2 = L2 / denom;
 
         double L3 = 1 - L1 - L2;
-
 
         if (L1 > 0.0 && L2 > 0.0 && L3 > 0.0) {
           inside_hull = true;
 
           // apply barycentric coordinates
-          double f = L1*f1 + L2*f2 + L3*f3;
+          double f = L1 * f1 + L2 * f2 + L3 * f3;
           ipval[idx] = f;
           break;
-
         }
-
 
       } // end !upperdelauney
 
       facet = facet->next;
-    }// end looking through facets
+    } // end looking through facets
 
     // if false, current point is not inside any triangle
     // and not inside convex hull.
-    if(!inside_hull){
+    if (!inside_hull) {
       ipval[idx] = fill_value;
       fprintf(stdout, " -- WARNING:: point (%f, %f) outside convex hull \n",
               single_point[0], single_point[1]);
-
     }
 
-
   } // end for
-
 }
 
 /**
  * Interpolates unstrucutred 2-D data.  This function does not check for
- * conditions where points form lines or skinny triangle elements - which may produce
- * undefined behaviors.
+ * conditions where points form lines or skinny triangle elements - which may
+ * produce undefined behaviors.
  *
  * @param   points   the x,y coordinates of the points with known values
  * @param   value    the known values
  * @param   num_pts  the number of known values, or use following:
- *                   int num_pts  = sizeof(values)/sizeof(values[0]); should be at least three points
- * @param   ipoints  an array of the x,y  coordinate of the point(s) whose unknown value to
- *                   interpolate
+ *                   int num_pts  = sizeof(values)/sizeof(values[0]); should be
+ * at least three points
+ * @param   ipoints  an array of the x,y  coordinate of the point(s) whose
+ * unknown value to interpolate
  * @param   ivalues   The value array for qhull interpolation results
  * @param   inum_pts  The number of unknown values. or use following:
  *                    int inum_pts = sizeof(ipoints)/(2 * sizeof(ipoints[0]));
  * @param   fill_Value  the fill value to use
  */
-int griddata(double* points,
-             double* values,
-             int num_pts,
-             double* ipoints,
-             double* ivalues,
-             int inum_pts,
-             double fill_value) {
-
-  const int DIMS2D  = 2;
+int griddata(double *points, double *values, int num_pts, double *ipoints,
+             double *ivalues, int inum_pts, double fill_value) {
+  const int DIMS2D = 2;
 
   if (num_pts < 4) {
     fprintf(stdout, " -- ERROR: Qhull needs a minimum of four points.\n");
     return INTERP_MIN_ERROR;
-
   } else if (inum_pts < 1) {
-    fprintf(stdout," -- ERROR: implementation needs a minimum ");
+    fprintf(stdout, " -- ERROR: implementation needs a minimum ");
     fprintf(stdout, "of one interpolated point location.\n");
     return INTERP_MIN_ERROR;
-
   }
 
   //   d - Delaunay triangulation by lifting points to a paraboloid
@@ -199,7 +196,7 @@ int griddata(double* points,
   // true for delaunay and will allow read-in points
   qh->PROJECTdelaunay = True;
 
-  coordT* allpts = points;
+  coordT *allpts = points;
 
   // second initialization with points
   qh_init_B(qh, allpts, num_pts, DIMS2D, ismalloc);
@@ -210,6 +207,8 @@ int griddata(double* points,
   // triangluate hull points
   qh_triangulate(qh);
 
+  print_triangles_facets(qh);
+
   // interpolate with known point values
   linear_interp2d_facet(qh, ipoints, ivalues, inum_pts, values, fill_value);
 
@@ -217,10 +216,4 @@ int griddata(double* points,
     return -1;
   else
     return 0;
-
 }
-
-
-
-
-
