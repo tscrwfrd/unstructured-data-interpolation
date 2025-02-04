@@ -32,5 +32,4 @@ The link I used to access code: https://www.cs.cmu.edu/afs/cs/project/quake/publ
 - 3D convex hulls and interpolation procedures
 - possible optimization applications
 - Unit test cases
-- Add [delaunator](https://github.com/mapbox/delaunator) translation
 
