@@ -71,7 +71,7 @@ static void linear_interp2d_facet(qhT *qh, double *ipoints, double *ipval,
           tript_x[count] = vertex->point[0];
           tript_y[count] = vertex->point[1];
           ++count;
-        } // end collecting triangle points
+        }  // end collecting triangle points
 
         // More efficient with this procedure:
         // https://math.stackexchange.com/questions/51326/determining-if-an-arbitrary-point-lies-inside-a-triangle-defined-by-three-points
@@ -124,10 +124,10 @@ static void linear_interp2d_facet(qhT *qh, double *ipoints, double *ipval,
           break;
         }
 
-      } // end !upperdelauney
+      }  // end !upperdelauney
 
       facet = facet->next;
-    } // end looking through facets
+    }  // end looking through facets
 
     // if false, current point is not inside any triangle
     // and not inside convex hull.
@@ -137,7 +137,7 @@ static void linear_interp2d_facet(qhT *qh, double *ipoints, double *ipval,
               single_point[0], single_point[1]);
     }
 
-  } // end for
+  }  // end for
 }
 
 /**
@@ -145,17 +145,19 @@ static void linear_interp2d_facet(qhT *qh, double *ipoints, double *ipval,
  * conditions where points form lines or skinny triangle elements - which will
  * produce undefined behaviors.
  *
- * @param   points   the x,y coordinates of the points with known values
- * @param   value    the known values
- * @param   num_pts  the number of known values, or use following:
- *                   int num_pts  = sizeof(values)/sizeof(values[0]); should be
- * at least three points
- * @param   ipoints  an array of the x,y  coordinate of the point(s) whose
- * unknown value to interpolate
- * @param   ivalues   The value array for qhull interpolation results
- * @param   inum_pts  The number of unknown values. or use following:
- *                    int inum_pts = sizeof(ipoints)/(2 * sizeof(ipoints[0]));
- * @param   fill_Value  the fill value to use
+ * @param points x and y coordinates of the points with known values
+ * @param value Given values for each point location. Must be half the
+ *                   size of the length of points.
+ * @param num_pts The number of known values, or use following:
+ *                int num_pts  = sizeof(values)/sizeof(values[0]); should be
+ *                at least three points
+ * @param ipoints Array of x and y coordinate of the point(s) whose
+ *                unknown value to interpolate.
+ * @param ivalues The value array for qhull interpolation results
+ * @param inum_pts The number of unknown values. or use following:
+ *                 int inum_pts = sizeof(ipoints)/(2 * sizeof(ipoints[0]));
+ * @param fill_Value Default fill value to use if point location can't
+ *                   interpolated.
  */
 int griddata(double *points, double *values, int num_pts, double *ipoints,
              double *ivalues, int inum_pts, double fill_value) {

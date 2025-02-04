@@ -19,7 +19,7 @@ TEST_OBJS = $(filter-out $(BUILD_DIR)/main.o, $(OBJS))
 TEST_BINS = $(TEST_SRCS:$(TEST_DIR)/%.c=$(BUILD_DIR)/%)
 
 # Colors for pretty output
-GREEN = \033[1m
+GREEN = \033[32m
 RED = \033[31m
 NC = \033[0m
 
@@ -41,15 +41,15 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(FLAGS) $< -o $@
 
 test: dirs $(TEST_BINS)
-	@echo "$(GREEN)Running all tests...$(NC)"
+	@echo -e "$(GREEN)Running all tests...$(NC)"
 	@EXIT_CODE=0; \
 	echo; \
 	for test in $(TEST_BINS) ; do \
-		echo "$(GREEN)Running $$test$(NC)"; \
+		echo -e "$(GREEN)Running $$test$(NC)"; \
 		if ./$$test; then \
-			echo "$(GREEN)Test passed: $$test$(NC)"; \
+			echo -e "$(GREEN)Test passed: $$test$(NC)"; \
 		else \
-			echo "$(RED)Test failed: $$test$(NC)"; \
+			echo -e "$(RED)Test failed: $$test$(RED)"; \
 			EXIT_CODE=1; \
 		fi; \
 		echo "------------------------"; \
