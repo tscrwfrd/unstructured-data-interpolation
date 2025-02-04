@@ -142,7 +142,7 @@ static void linear_interp2d_facet(qhT *qh, double *ipoints, double *ipval,
 
 /**
  * Interpolates unstrucutred 2-D data.  This function does not check for
- * conditions where points form lines or skinny triangle elements - which may
+ * conditions where points form lines or skinny triangle elements - which will
  * produce undefined behaviors.
  *
  * @param   points   the x,y coordinates of the points with known values
