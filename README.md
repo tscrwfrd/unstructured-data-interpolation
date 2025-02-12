@@ -31,5 +31,4 @@ The link I used to access code: https://www.cs.cmu.edu/afs/cs/project/quake/publ
 - Different grid interpolation procedures
 - 3D convex hulls and interpolation procedures
 - possible optimization applications
-- Add delaunator(https://github.com/mapbox/delaunator) translation
 

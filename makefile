@@ -50,6 +50,7 @@ test: dirs $(TEST_BINS)
 			echo -e "$(GREEN)Test passed: $$test$(NC)"; \
 		else \
 			echo -e "$(RED)Test failed: $$test$(RED)"; \
+			echo -e "$(NC)" \
 			EXIT_CODE=1; \
 		fi; \
 		echo "------------------------"; \

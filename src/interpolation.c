@@ -4,7 +4,7 @@
 
 #include "../lib/qhull/src/libqhull_r/qhull_ra.h"
 
-void print_triangles_facets(qhT *qh) {
+static void print_triangles_facets(qhT *qh, double *pts) {
   facetT *facet = qh->facet_list;
   while (facet->id != 0) {
     if (!facet->upperdelaunay) {
@@ -15,6 +15,8 @@ void print_triangles_facets(qhT *qh) {
       int h2 = qh_pointid(qh, v2->point);
       int h3 = qh_pointid(qh, v3->point);
       printf("%d -> %d -> %d \n", h1, h2, h3);
+      printf("(%f, %f) -> (%f, %f) -> (%f, %f) \n", pts[h1*2], pts[h1*2 + 1], 
+       pts[h2*2], pts[h2*2 + 1], pts[h3*2], pts[h3*2 + 1] );
     }
     facet = facet->next;
   }
@@ -141,7 +143,7 @@ static void linear_interp2d_facet(qhT *qh, double *ipoints, double *ipval,
 }
 
 /**
- * Interpolates unstrucutred 2-D data.  This function does not check for
+ * Interpolates unstrucutred 2-D data points.  This function does not check for
  * conditions where points form lines or skinny triangle elements - which will
  * produce undefined behaviors.
  *
@@ -209,10 +211,84 @@ int griddata(double *points, double *values, int num_pts, double *ipoints,
   // triangluate hull points
   qh_triangulate(qh);
 
-  print_triangles_facets(qh);
+  print_triangles_facets(qh, points);
 
   // interpolate with known point values
   linear_interp2d_facet(qh, ipoints, ivalues, inum_pts, values, fill_value);
+
+  if (exitcode < 0)
+    return -1;
+  else
+    return 0;
+}
+
+
+/**
+ * Produces a triangle mesh from an array of 2-D data points.  
+ * 
+ * This function does not check for conditions where points form lines 
+ * or skinny triangle elements - which will produce undefined behaviors.
+ *
+ * @param points x and y coordinates of the points with known values
+ * @param value Given values for each point location. Must be half the
+ *                   size of the length of points.
+ * @param num_pts The number of known values, or use following:
+ *                int num_pts  = sizeof(values)/sizeof(values[0]); should be
+ *                at least three points
+ * @param ipoints Array of x and y coordinate of the point(s) whose
+ *                unknown value to interpolate.
+ * @param ivalues The value array for qhull interpolation results
+ * @param inum_pts The number of unknown values. or use following:
+ *                 int inum_pts = sizeof(ipoints)/(2 * sizeof(ipoints[0]));
+ * @param fill_Value Default fill value to use if point location can't
+ *                   interpolated.
+ */
+int griddata_triangles(double *points, int num_pts) {
+  const int DIMS2D = 2;
+
+  if (num_pts < 4) {
+    fprintf(stdout, " -- ERROR: Qhull needs a minimum of four points.\n");
+    return INTERP_MIN_ERROR;
+  } 
+
+  //   d - Delaunay triangulation by lifting points to a paraboloid
+  //   J  - slightly joggles the point location
+  //   char noptions[CMDOPTS] = "QVn d";
+  char *noptions = "QVn QJ d";
+
+  // new instance for qhull
+  qhT qh_qh;
+  qhT *qh = &qh_qh;
+
+  // True if qh_freeqhull should 'free(array)'
+  boolT ismalloc = False;
+
+  // initiate qhull -
+  // legacy call to arm variables that are generally used for command line
+  qh_init_A(qh, stdin, stdout, stderr, 0, NULL);
+  int exitcode = setjmp(qh->errexit);
+
+  // not sure what this means yet
+  qh->NOerrexit = False;
+
+  // commandline option for:
+  qh_initflags(qh, noptions);
+
+  // true for delaunay and will allow read-in points
+  qh->PROJECTdelaunay = True;
+
+  coordT *allpts = points;
+
+  // second initialization with points
+  qh_init_B(qh, allpts, num_pts, DIMS2D, ismalloc);
+
+  // convex hull
+  qh_qhull(qh);
+
+  // triangluate hull points
+  qh_triangulate(qh);
+
+  print_triangles_facets(qh, points);
 
   if (exitcode < 0)
     return -1;
