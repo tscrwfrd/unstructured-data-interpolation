@@ -1,10 +1,16 @@
-# unstructured-data-interpolation
+# unstructured-data-interpolation (UDI)
 
-This is a replica of Scipy's griddata implementation.
+UDI provides efficient interpolation of unstructured 2D data points using Delaunay triangulation. This project aims to replicate the functionality of SciPy's griddata interpolation in a standalone C library.
 
-The unstructured-data-interpolation (udi) aims to provide 
-the same functionality of Scipy's interpolation functionality. Current 
-devlopement efforts is only on linux and is tested with gcc version 14.2.1. **THIS IS A WORK IN PROGRESS.**
+- Linear interpolation using barycentric coordinates
+- Delaunay triangulation using Qhull (and soon [Delaunator](https://github.com/mapbox/delaunator/tree/main))
+- Support for 2D point interpolation
+
+⚠️ **Work in Progress**
+UDI is currently functional and can perform basic 2D interpolation tasks, but it's actively under development. While the core functionality works, you may encounter:
+- Limited error handling
+- Ongoing API refinements
+- Documentation updates
 
 ## Installation prerequisites
 
@@ -14,6 +20,7 @@ devlopement efforts is only on linux and is tested with gcc version 14.2.1. **TH
 
 ### Qhull steps
 
+
 - Clone [qhull](https://github.com/qhull/qhull) within the `lib` directory.
 - `cd` into `qhull` directory and run `make` and `make test`.
 - `export LD_LIBRARY_PATH=$PWD/lib:$LD_LIBRARY_PATH`
@@ -21,14 +28,15 @@ devlopement efforts is only on linux and is tested with gcc version 14.2.1. **TH
 
 ## Delaunator
 
-Delaunator is mostly a direct translation from the [delaunator](https://github.com/mapbox/delaunator/tree/main) javascript library.  I had to heavily lift code from Jonathon Shewchuk's [predicate](https://www.cs.cmu.edu/afs/cs/project/quake/public/code/) routines from his robust [Predicates](https://www.cs.cmu.edu/~quake/robust.html) page.
+The Delaunator component is based on two main sources:
 
-The link I used to access code: https://www.cs.cmu.edu/afs/cs/project/quake/public/code/
-
+- A C translation of the JavaScript [Delaunator](https://github.com/mapbox/delaunator/tree/main) library
+- Jonathan Shewchuk's robust geometric [predicates](https://www.cs.cmu.edu/afs/cs/project/quake/public/code/). The link I used to access code: https://www.cs.cmu.edu/afs/cs/project/quake/public/code/
 
 
 ## Future work
-- Different grid interpolation procedures
-- 3D convex hulls and interpolation procedures
-- possible optimization applications
+- Improve documentation and examples
+- Implement different grid interpolation procedures
+- Add support for 3D convex hulls
+- Add support for [Fortran](https://fortran-lang.org/)
 
