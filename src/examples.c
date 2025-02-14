@@ -59,7 +59,6 @@ int main() {
 }
 
 int interpolation_qhull(void) {
-
   int result = 0;
 
   const int NUM_KNOWN_POINTS = 7;
@@ -87,7 +86,6 @@ int interpolation_qhull(void) {
 }
 
 int interpolation_delaunator(void) {
-
   int result = 0;
 
   const int NUM_KNOWN_POINTS = 7;
@@ -146,7 +144,7 @@ int triangle_mesh_delaunator(void) {
   double points[] = {0.0, 6.0, -1.0, -1.0, 1.0, 3.0, 2.0,
                      1.0, 3.0, 4.0,  4.0,  2.0, 3.0, -2.0};
 
-  Delaunator *d = delaunator_create(points, NUM_KNOWN_POINTS*2);
+  Delaunator *d = delaunator_create(points, NUM_KNOWN_POINTS * 2);
   update(d);
 
   printf(" >>>>>>  DELAUNATOR  <<<<<<<\n");
@@ -162,4 +160,3 @@ int triangle_mesh_delaunator(void) {
   delaunator_free(d);
   return result;
 }
-

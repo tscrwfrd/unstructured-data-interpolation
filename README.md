@@ -31,7 +31,36 @@ UDI is currently functional and can perform basic 2D interpolation tasks, but it
 The Delaunator component is based on two main sources:
 
 - A C translation of the JavaScript [Delaunator](https://github.com/mapbox/delaunator/tree/main) library
-- Jonathan Shewchuk's robust geometric [predicates](https://www.cs.cmu.edu/afs/cs/project/quake/public/code/). The link I used to access code: https://www.cs.cmu.edu/afs/cs/project/quake/public/code/
+- Jonathan Shewchuk's robust geometric [predicates](https://www.cs.cmu.edu/afs/cs/project/quake/public/code/). The link I used to access code: https://www.cs.cmu.edu/afs/cs/project/quake/public/code/.
+
+
+Initially, this project considered using Delaunator as an alternative meshing approach for interpolation tasks. However, after implementation, I decided to maintain only the triangulation functionality while deferring the full Delaunay-based interpolation to Qhull. While Delaunator's implementation remains in the codebase, I need to study its Delaunay properties more thoroughly to understand why its triangulations differ from Qhull's results.
+
+## Barycentric Coordinates notes
+
+UDI uses [barycentric coordinates](https://en.wikipedia.org/wiki/Barycentric_coordinate_system) for interpolation within triangles. The coordinates (λ₁, λ₂, λ₃) for a point (x,y) in a triangle with vertices (x₁,y₁), (x₂,y₂), (x₃,y₃) are calculated as:
+
+λ₁ = ((y₂-y₃)(x-x₃) + (x₃-x₂)(y-y₃)) / D
+λ₂ = ((y₃-y₁)(x-x₃) + (x₁-x₃)(y-y₃)) / D
+λ₃ = 1 - λ₁ - λ₂
+
+where:
+D = (y₂-y₃)(x₁-x₃) + (x₃-x₂)(y₁-y₃)
+
+#### Properties
+- λ₁ + λ₂ + λ₃ = 1
+- Point is inside triangle if all λᵢ > 0
+- Point is on edge if one λᵢ = 0
+- Point is outside triangle if any λᵢ < 0
+
+#### Interpolation
+For a value v at point (x,y):
+
+v = λ₁v₁ + λ₂v₂ + λ₃v₃
+
+where v₁, v₂, v₃ are the values at the triangle vertices.
+
+This interpolation provides a continuous, linear variation of values across the triangle, making it ideal for unstructured data interpolation.
 
 
 ## Future work

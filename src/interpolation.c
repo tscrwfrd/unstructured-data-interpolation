@@ -82,97 +82,101 @@ int create_triangles_indices(qhT *qh, int **indices, int *num) {
  *     linear_interp2d_facet(qh, points, values, 2, original_values, -999.0);
  * @endcode
  */
-static void linear_interp2d_facet(qhT *qh, const double *ipoints, double *ipval,
-                                 int inum_pts, const double *pval, double fill_value) {
-    // Process each point
-    for (int i = 0; i < inum_pts; i++) {
-        const double x = ipoints[i*2];
-        const double y = ipoints[i*2 + 1];
-        bool found = false;
+static void linear_interp2d(qhT *qh, const double *ipoints, double *ipval,
+                            int inum_pts, const double *pval,
+                            double fill_value) {
+  // Process each point
+  for (int i = 0; i < inum_pts; i++) {
+    const double x = ipoints[i * 2];
+    const double y = ipoints[i * 2 + 1];
+    bool found = false;
 
-        // Default to fill value
-        ipval[i] = fill_value;
+    // Default to fill value
+    ipval[i] = fill_value;
 
-        // Check each facet
-        for (facetT *facet = qh->facet_list; facet && facet->id != 0; facet = facet->next) {
-            if (facet->upperdelaunay) continue;
+    // Check each facet
+    for (facetT *facet = qh->facet_list; facet && facet->id != 0;
+         facet = facet->next) {
+      if (facet->upperdelaunay)
+        continue;
 
-            // Get triangle vertices
-            vertexT *v0 = facet->vertices->e[0].p;
-            vertexT *v1 = facet->vertices->e[1].p;
-            vertexT *v2 = facet->vertices->e[2].p;
+      // Get triangle vertices
+      vertexT *v0 = facet->vertices->e[0].p;
+      vertexT *v1 = facet->vertices->e[1].p;
+      vertexT *v2 = facet->vertices->e[2].p;
 
-            // Get vertex coordinates
-            const double x1 = v0->point[0], y1 = v0->point[1];
-            const double x2 = v1->point[0], y2 = v1->point[1];
-            const double x3 = v2->point[0], y3 = v2->point[1];
+      // Get vertex coordinates
+      const double x1 = v0->point[0], y1 = v0->point[1];
+      const double x2 = v1->point[0], y2 = v1->point[1];
+      const double x3 = v2->point[0], y3 = v2->point[1];
 
-            // Calculate barycentric coordinates
-            const double denom = (y2-y3)*(x1-x3) + (x3-x2)*(y1-y3);
-            const double L1 = ((y2-y3)*(x-x3) + (x3-x2)*(y-y3)) / denom;
-            const double L2 = ((y3-y1)*(x-x3) + (x1-x3)*(y-y3)) / denom;
-            const double L3 = 1.0 - L1 - L2;
+      // Calculate barycentric coordinates
+      const double denom = (y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3);
+      const double L1 = ((y2 - y3) * (x - x3) + (x3 - x2) * (y - y3)) / denom;
+      const double L2 = ((y3 - y1) * (x - x3) + (x1 - x3) * (y - y3)) / denom;
+      const double L3 = 1.0 - L1 - L2;
 
-            // Check if point is inside triangle
-            if (L1 >= 0.0 && L2 >= 0.0 && L3 >= 0.0) {
-                // Get values at vertices
-                const double f1 = pval[qh_pointid(qh, v0->point)];
-                const double f2 = pval[qh_pointid(qh, v1->point)];
-                const double f3 = pval[qh_pointid(qh, v2->point)];
+      // Check if point is inside triangle
+      if (L1 >= 0.0 && L2 >= 0.0 && L3 >= 0.0) {
+        // Get values at vertices
+        const double f1 = pval[qh_pointid(qh, v0->point)];
+        const double f2 = pval[qh_pointid(qh, v1->point)];
+        const double f3 = pval[qh_pointid(qh, v2->point)];
 
-                // Interpolate value
-                ipval[i] = L1*f1 + L2*f2 + L3*f3;
-                found = true;
-                break;
-            }
-        }
-
-        if (!found) {
-            fprintf(stdout, " -- WARNING:: point (%f, %f) outside convex hull\n", x, y);
-        }
+        // Interpolate value
+        ipval[i] = L1 * f1 + L2 * f2 + L3 * f3;
+        found = true;
+        break;
+      }
     }
+
+    if (!found) {
+      fprintf(stdout, " -- WARNING:: point (%f, %f) outside convex hull\n", x,
+              y);
+    }
+  }
 }
 
 /**
  * Helper function to initialize and setup Qhull for 2D triangulation
- * 
+ *
  * @param points Input points array
  * @param num_pts Number of points
  * @return Initialized qhull structure or NULL on error
  */
-static qhT* init_qhull_2d(double *points, int num_pts) {
-    if (num_pts < 4) {
-        fprintf(stdout, " -- ERROR: Qhull needs a minimum of four points.\n");
-        return NULL;
-    }
+static qhT *init_qhull_2d(double *points, int num_pts) {
+  if (num_pts < 4) {
+    fprintf(stdout, " -- ERROR: Qhull needs a minimum of four points.\n");
+    return NULL;
+  }
 
-    char *noptions = "QVn QJ d";
-    qhT *qh = (qhT*)malloc(sizeof(qhT));
-    if (!qh) return NULL;
+  char *noptions = "QVn QJ d";
+  qhT *qh = (qhT *)malloc(sizeof(qhT));
+  if (!qh)
+    return NULL;
 
-    // Initialize qhull
-    boolT ismalloc = False;
-    qh_init_A(qh, stdin, stdout, stderr, 0, NULL);
-    
-    if (setjmp(qh->errexit) < 0) {
-        free(qh);
-        return NULL;
-    }
+  // Initialize qhull
+  boolT ismalloc = False;
+  qh_init_A(qh, stdin, stdout, stderr, 0, NULL);
 
-    qh->NOerrexit = False;
-    qh_initflags(qh, noptions);
-    qh->PROJECTdelaunay = True;
+  if (setjmp(qh->errexit) < 0) {
+    free(qh);
+    return NULL;
+  }
 
-    // Initialize with points
-    qh_init_B(qh, points, num_pts, 2, ismalloc);
-    
-    // Create triangulation
-    qh_qhull(qh);
-    qh_triangulate(qh);
+  qh->NOerrexit = False;
+  qh_initflags(qh, noptions);
+  qh->PROJECTdelaunay = True;
 
-    return qh;
+  // Initialize with points
+  qh_init_B(qh, points, num_pts, 2, ismalloc);
+
+  // Create triangulation
+  qh_qhull(qh);
+  qh_triangulate(qh);
+
+  return qh;
 }
-
 
 /**
  * Interpolates values for unstructured 2D points using Delaunay triangulation.
@@ -223,21 +227,21 @@ static qhT* init_qhull_2d(double *points, int num_pts) {
  */
 int griddata(double *points, double *values, int num_pts, double *ipoints,
              double *ivalues, int inum_pts, double fill_value) {
-
   if (inum_pts < 1) {
-        fprintf(stdout, " -- ERROR: implementation needs a minimum of one interpolated point.\n");
-        return INTERP_MIN_ERROR;
-    }
+    fprintf(stdout, " -- ERROR: implementation needs a minimum of one "
+                    "interpolated point.\n");
+    return INTERP_MIN_ERROR;
+  }
 
-    qhT *qh = init_qhull_2d(points, num_pts);
-    if (!qh) return QHULL_GENERAL_ERROR;
+  qhT *qh = init_qhull_2d(points, num_pts);
+  if (!qh)
+    return QHULL_GENERAL_ERROR;
 
-    // Perform interpolation
-    linear_interp2d_facet(qh, ipoints, ivalues, inum_pts, values, fill_value);
-    
-    qh_freeqhull(qh, False);
-    free(qh);
-    return 0;
+  linear_interp2d(qh, ipoints, ivalues, inum_pts, values, fill_value);
+
+  qh_freeqhull(qh, False);
+  free(qh);
+  return 0;
 }
 
 /**
@@ -261,13 +265,14 @@ int griddata(double *points, double *values, int num_pts, double *ipoints,
  *                   interpolated.
  */
 int griddata_triangles(double *points, int num_pts, int **indices, int *num) {
-   qhT *qh = init_qhull_2d(points, num_pts);
-    if (!qh) return QHULL_GENERAL_ERROR;
+  qhT *qh = init_qhull_2d(points, num_pts);
+  if (!qh)
+    return QHULL_GENERAL_ERROR;
 
-    // Get triangle indices
-    int result = create_triangles_indices(qh, indices, num);
-    
-    qh_freeqhull(qh, False);
-    free(qh);
-    return result;
+  // Get triangle indices
+  int result = create_triangles_indices(qh, indices, num);
+
+  qh_freeqhull(qh, False);
+  free(qh);
+  return result;
 }
