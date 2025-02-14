@@ -5,29 +5,6 @@
 #include "../lib/qhull/src/libqhull_r/qhull_ra.h"
 
 /**
- * Helper print function...
- */
-static void print_triangles_facets(qhT *qh, double *pts) {
-  facetT *facet = qh->facet_list;
-
-  while (facet->id != 0) {
-    if (!facet->upperdelaunay) {
-      vertexT *v1 = facet->vertices->e[0].p;
-      vertexT *v2 = facet->vertices->e[1].p;
-      vertexT *v3 = facet->vertices->e[2].p;
-      int h1 = qh_pointid(qh, v1->point);
-      int h2 = qh_pointid(qh, v2->point);
-      int h3 = qh_pointid(qh, v3->point);
-      printf("%d -> %d -> %d \n", h1, h2, h3);
-      printf(" >> (%f, %f) -> (%f, %f) -> (%f, %f) \n", pts[h1 * 2],
-             pts[h1 * 2 + 1], pts[h2 * 2], pts[h2 * 2 + 1], pts[h3 * 2],
-             pts[h3 * 2 + 1]);
-    }
-    facet = facet->next;
-  }
-}
-
-/**
  * Creates an array of triangle indices from a Qhull triangulation.
  *
  * This function extracts triangle indices from a Qhull triangulation,
@@ -105,115 +82,97 @@ int create_triangles_indices(qhT *qh, int **indices, int *num) {
  *     linear_interp2d_facet(qh, points, values, 2, original_values, -999.0);
  * @endcode
  */
-static void linear_interp2d_facet(qhT *qh, double *ipoints, double *ipval,
-                                  int inum_pts, double *pval,
-                                  double fill_value) {
-  // facet reference
-  facetT *facet;
+static void linear_interp2d_facet(qhT *qh, const double *ipoints, double *ipval,
+                                 int inum_pts, const double *pval, double fill_value) {
+    // Process each point
+    for (int i = 0; i < inum_pts; i++) {
+        const double x = ipoints[i*2];
+        const double y = ipoints[i*2 + 1];
+        bool found = false;
 
-  // vertices references
-  vertexT *vertex, **vertexp;
+        // Default to fill value
+        ipval[i] = fill_value;
 
-  // coordinates
-  coordT single_point[2];
+        // Check each facet
+        for (facetT *facet = qh->facet_list; facet && facet->id != 0; facet = facet->next) {
+            if (facet->upperdelaunay) continue;
 
-  // coords always in 2D
-  int ncoords = inum_pts * 2;
+            // Get triangle vertices
+            vertexT *v0 = facet->vertices->e[0].p;
+            vertexT *v1 = facet->vertices->e[1].p;
+            vertexT *v2 = facet->vertices->e[2].p;
 
-  // loop through all coordinates!
-  for (int i = 0; i < ncoords; i += 2) {
-    single_point[0] = ipoints[i];
-    single_point[1] = ipoints[i + 1];
-    const int idx = i >> 1;
+            // Get vertex coordinates
+            const double x1 = v0->point[0], y1 = v0->point[1];
+            const double x2 = v1->point[0], y2 = v1->point[1];
+            const double x3 = v2->point[0], y3 = v2->point[1];
 
-    // facet list reference
-    facet = qh->facet_list;
+            // Calculate barycentric coordinates
+            const double denom = (y2-y3)*(x1-x3) + (x3-x2)*(y1-y3);
+            const double L1 = ((y2-y3)*(x-x3) + (x3-x2)*(y-y3)) / denom;
+            const double L2 = ((y3-y1)*(x-x3) + (x1-x3)*(y-y3)) / denom;
+            const double L3 = 1.0 - L1 - L2;
 
-    // flag to mark points inside convex hull
-    bool inside_hull = false;
+            // Check if point is inside triangle
+            if (L1 >= 0.0 && L2 >= 0.0 && L3 >= 0.0) {
+                // Get values at vertices
+                const double f1 = pval[qh_pointid(qh, v0->point)];
+                const double f2 = pval[qh_pointid(qh, v1->point)];
+                const double f3 = pval[qh_pointid(qh, v2->point)];
 
-    // default value
-    ipval[idx] = -9999.0;
-
-    while (facet->id != 0) {
-      if (!facet->upperdelaunay) {
-        double tript_x[3];
-        double tript_y[3];
-
-        int count = 0;
-
-        FOREACHvertex_(facet->vertices) {
-          tript_x[count] = vertex->point[0];
-          tript_y[count] = vertex->point[1];
-          ++count;
-        } // end collecting triangle points
-
-        // More efficient with this procedure:
-        // https://math.stackexchange.com/questions/51326/determining-if-an-arbitrary-point-lies-inside-a-triangle-defined-by-three-points
-
-        double x = single_point[0];
-        double y = single_point[1];
-
-        vertex = facet->vertices->e[0].p;
-        double x1 = tript_x[0];
-        double y1 = tript_y[0];
-        double f1 = pval[qh_pointid(qh, vertex->point)];
-
-        vertex = facet->vertices->e[1].p;
-        double x2 = tript_x[1];
-        double y2 = tript_y[1];
-        double f2 = pval[qh_pointid(qh, vertex->point)];
-
-        vertex = facet->vertices->e[2].p;
-        double x3 = tript_x[2];
-        double y3 = tript_y[2];
-        double f3 = pval[qh_pointid(qh, vertex->point)];
-
-        /*
-           Converting Cartesian to barycentric coordinates
-           https://en.wikipedia.org/wiki/Barycentric_coordinate_system
-
-           denomr = ((y2-y3)*(x1-x3) + (x3-x2)*(y1-y3))
-           L1 = ((y2-y3)*(x-x3) + (x3-x2)*(y-y3)) / denomr
-           L2 = ((y3-y1)*(x-x3) + (x1-x3)*(y-y3)) / denomr
-           L3 = 1.0 - L1 - L2
-         */
-
-        double denom =
-            y2 * x1 - y2 * x3 - y3 * x1 + x3 * y1 - x2 * y1 + x2 * y3;
-
-        double L1 = y2 * x - y2 * x3 - y3 * x + x3 * y - x2 * y + x2 * y3;
-        L1 = L1 / denom;
-
-        double L2 = y3 * x - y1 * x + y1 * x3 + x1 * y - x1 * y3 - x3 * y;
-        L2 = L2 / denom;
-
-        double L3 = 1 - L1 - L2;
-
-        if (L1 > 0.0 && L2 > 0.0 && L3 > 0.0) {
-          inside_hull = true;
-
-          // apply barycentric coordinates
-          double f = L1 * f1 + L2 * f2 + L3 * f3;
-          ipval[idx] = f;
-          break;
+                // Interpolate value
+                ipval[i] = L1*f1 + L2*f2 + L3*f3;
+                found = true;
+                break;
+            }
         }
 
-      } // end !upperdelauney
+        if (!found) {
+            fprintf(stdout, " -- WARNING:: point (%f, %f) outside convex hull\n", x, y);
+        }
+    }
+}
 
-      facet = facet->next;
-    } // end looking through facets
-
-    // if false, current point is not inside any triangle
-    // and not inside convex hull.
-    if (!inside_hull) {
-      ipval[idx] = fill_value;
-      fprintf(stdout, " -- WARNING:: point (%f, %f) outside convex hull \n",
-              single_point[0], single_point[1]);
+/**
+ * Helper function to initialize and setup Qhull for 2D triangulation
+ * 
+ * @param points Input points array
+ * @param num_pts Number of points
+ * @return Initialized qhull structure or NULL on error
+ */
+static qhT* init_qhull_2d(double *points, int num_pts) {
+    if (num_pts < 4) {
+        fprintf(stdout, " -- ERROR: Qhull needs a minimum of four points.\n");
+        return NULL;
     }
 
-  } // end for
+    char *noptions = "QVn QJ d";
+    qhT *qh = (qhT*)malloc(sizeof(qhT));
+    if (!qh) return NULL;
+
+    // Initialize qhull
+    boolT ismalloc = False;
+    qh_init_A(qh, stdin, stdout, stderr, 0, NULL);
+    
+    if (setjmp(qh->errexit) < 0) {
+        free(qh);
+        return NULL;
+    }
+
+    qh->NOerrexit = False;
+    qh_initflags(qh, noptions);
+    qh->PROJECTdelaunay = True;
+
+    // Initialize with points
+    qh_init_B(qh, points, num_pts, 2, ismalloc);
+    
+    // Create triangulation
+    qh_qhull(qh);
+    qh_triangulate(qh);
+
+    return qh;
 }
+
 
 /**
  * Interpolates values for unstructured 2D points using Delaunay triangulation.
@@ -264,62 +223,20 @@ static void linear_interp2d_facet(qhT *qh, double *ipoints, double *ipval,
  */
 int griddata(double *points, double *values, int num_pts, double *ipoints,
              double *ivalues, int inum_pts, double fill_value) {
-  const int DIMS2D = 2;
 
-  if (num_pts < 4) {
-    fprintf(stdout, " -- ERROR: Qhull needs a minimum of four points.\n");
-    return INTERP_MIN_ERROR;
-  } else if (inum_pts < 1) {
-    fprintf(stdout, " -- ERROR: implementation needs a minimum ");
-    fprintf(stdout, "of one interpolated point location.\n");
-    return INTERP_MIN_ERROR;
-  }
+  if (inum_pts < 1) {
+        fprintf(stdout, " -- ERROR: implementation needs a minimum of one interpolated point.\n");
+        return INTERP_MIN_ERROR;
+    }
 
-  //   d - Delaunay triangulation by lifting points to a paraboloid
-  //   J  - slightly joggles the point location
-  //   char noptions[CMDOPTS] = "QVn d";
-  char *noptions = "QVn QJ d";
+    qhT *qh = init_qhull_2d(points, num_pts);
+    if (!qh) return QHULL_GENERAL_ERROR;
 
-  // new instance for qhull
-  qhT qh_qh;
-  qhT *qh = &qh_qh;
-
-  // True if qh_freeqhull should 'free(array)'
-  boolT ismalloc = False;
-
-  // initiate qhull -
-  // legacy call to arm variables that are generally used for command line
-  qh_init_A(qh, stdin, stdout, stderr, 0, NULL);
-  int exitcode = setjmp(qh->errexit);
-  if (exitcode < 0)
-    return QHULL_GENERAL_ERROR;
-
-  // not sure what this means yet
-  qh->NOerrexit = False;
-
-  // commandline option for:
-  qh_initflags(qh, noptions);
-
-  // true for delaunay and will allow read-in points
-  qh->PROJECTdelaunay = True;
-
-  coordT *allpts = points;
-
-  // second initialization with points
-  qh_init_B(qh, allpts, num_pts, DIMS2D, ismalloc);
-
-  // convex hull
-  qh_qhull(qh);
-
-  // triangluate hull points
-  qh_triangulate(qh);
-
-  // interpolate with known point values
-  linear_interp2d_facet(qh, ipoints, ivalues, inum_pts, values, fill_value);
-
-  if (exitcode < 0)
-    return -1;
-  else
+    // Perform interpolation
+    linear_interp2d_facet(qh, ipoints, ivalues, inum_pts, values, fill_value);
+    
+    qh_freeqhull(qh, False);
+    free(qh);
     return 0;
 }
 
@@ -344,56 +261,13 @@ int griddata(double *points, double *values, int num_pts, double *ipoints,
  *                   interpolated.
  */
 int griddata_triangles(double *points, int num_pts, int **indices, int *num) {
-  const int DIMS2D = 2;
+   qhT *qh = init_qhull_2d(points, num_pts);
+    if (!qh) return QHULL_GENERAL_ERROR;
 
-  if (num_pts < 4) {
-    fprintf(stdout, " -- ERROR: Qhull needs a minimum of four points.\n");
-    return INTERP_MIN_ERROR;
-  }
-
-  //   d - Delaunay triangulation by lifting points to a paraboloid
-  //   J  - slightly joggles the point location
-  //   char noptions[CMDOPTS] = "QVn d";
-  char *noptions = "QVn QJ d";
-
-  // new instance for qhull
-  qhT qh_qh;
-  qhT *qh = &qh_qh;
-
-  // True if qh_freeqhull should 'free(array)'
-  boolT ismalloc = False;
-
-  // initiate qhull -
-  // legacy call to arm variables that are generally used for command line
-  qh_init_A(qh, stdin, stdout, stderr, 0, NULL);
-  int exitcode = setjmp(qh->errexit);
-  if (exitcode < 0)
-    return QHULL_GENERAL_ERROR;
-
-  // not sure what this means yet
-  qh->NOerrexit = False;
-
-  // commandline option for:
-  qh_initflags(qh, noptions);
-
-  // true for delaunay and will allow read-in points
-  qh->PROJECTdelaunay = True;
-
-  coordT *allpts = points;
-
-  // second initialization with points
-  qh_init_B(qh, allpts, num_pts, DIMS2D, ismalloc);
-
-  // convex hull
-  qh_qhull(qh);
-
-  // triangluate hull points
-  qh_triangulate(qh);
-
-  exitcode = create_triangles_indices(qh, indices, num);
-
-  if (exitcode < 0)
-    return exitcode;
-  else
-    return 0;
+    // Get triangle indices
+    int result = create_triangles_indices(qh, indices, num);
+    
+    qh_freeqhull(qh, False);
+    free(qh);
+    return result;
 }

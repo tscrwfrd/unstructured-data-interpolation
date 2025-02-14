@@ -37,11 +37,15 @@
 //  FACETS: (2, 1) -> (3, 4) -> ( 4, 2)
 //  ======================================
 int interpolation_qhull(void);
+int interpolation_delaunator(void);
 int triangle_mesh_qhull(void);
 int triangle_mesh_delaunator(void);
 
 int main() {
   if (interpolation_qhull() != 0) {
+    fprintf(stderr, "Interpolation failed.\n");
+  }
+  if (interpolation_delaunator() != 0) {
     fprintf(stderr, "Interpolation failed.\n");
   }
   if (triangle_mesh_qhull() != 0) {
@@ -54,8 +58,35 @@ int main() {
   return 0;
 }
 
-
 int interpolation_qhull(void) {
+
+  int result = 0;
+
+  const int NUM_KNOWN_POINTS = 7;
+  const int NUM_INTERP_POINTS = 2;
+  const double FILL_VALUE = 9.5;
+  // given point data
+  double points[] = {0.0, 6.0, -1.0, -1.0, 1.0, 3.0, 2.0,
+                     1.0, 3.0, 4.0,  4.0,  2.0, 3.0, -2.0};
+  double point_values[] = {3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4};
+  // points to interpolate
+  double interp_points[] = {3.0, 0.0, 1.0, 40.0};
+  double interp_values[] = {0.0, 0.0};
+
+  result = griddata(points, point_values, NUM_KNOWN_POINTS, interp_points,
+                    interp_values, NUM_INTERP_POINTS, FILL_VALUE);
+  if (result != 0) {
+    fprintf(stderr, "Interpolation failed\n");
+  }
+
+  for (int i = 0; i < NUM_INTERP_POINTS; i++) {
+    printf("Interpolated value %d: %lf\n", i + 1, interp_values[i]);
+  }
+
+  return result;
+}
+
+int interpolation_delaunator(void) {
 
   int result = 0;
 
@@ -94,7 +125,7 @@ int triangle_mesh_qhull(void) {
   int num_triangles = -1;
   griddata_triangles(points, NUM_KNOWN_POINTS, &triangle_list, &num_triangles);
 
-  printf(" >>>>>>  DELAUNATOR  <<<<<<<");
+  printf(" >>>>>>  QHULL  <<<<<<<\n");
   printf("Number of triangles ==> %d\n", num_triangles);
   int tnum = 0;
   for (int i = 0; i < num_triangles * 3; i += 3) {
@@ -103,6 +134,8 @@ int triangle_mesh_qhull(void) {
            triangle_list[i + 2]);
     tnum += 1;
   }
+
+  free(triangle_list);
 
   return result;
 }
@@ -116,7 +149,7 @@ int triangle_mesh_delaunator(void) {
   Delaunator *d = delaunator_create(points, NUM_KNOWN_POINTS*2);
   update(d);
 
-  printf(" >>>>>>  DELAUNATOR  <<<<<<<");
+  printf(" >>>>>>  DELAUNATOR  <<<<<<<\n");
   printf("Number of triangles ==> %d\n", d->triangles_len / 3);
   int tnum = 0;
   for (int i = 0; i < d->triangles_len; i += 3) {

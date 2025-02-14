@@ -68,7 +68,7 @@ static void test_qhull_triangle_list(void **state) {
   assert_int_equal(triangle_list[8], 4);
 }
 
-#ifdef TESTING
+
 int main(void) {
   const struct CMUnitTest test[] = {cmocka_unit_test(test_equilateral_triangle),
                                     cmocka_unit_test(test_qhull_square),
@@ -76,4 +76,4 @@ int main(void) {
 
   return cmocka_run_group_tests(test, NULL, NULL);
 };
-#endif
+
