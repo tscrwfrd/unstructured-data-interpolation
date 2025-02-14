@@ -12,6 +12,17 @@ UDI is currently functional and can perform basic 2D interpolation tasks, but it
 - Ongoing API refinements
 - Documentation updates
 
+To run:
+```bash
+make
+make test
+```
+
+An example of how to use UDI:
+```bash
+./bin/example.exe
+```
+
 ## Installation prerequisites
 
 [QHull](http://www.qhull.org/) is necessary to compile udi.
