@@ -17,6 +17,4 @@ int griddata(double* points, double* values, int num_pts, double* ipoints,
 int griddata_triangles(double* points, int num_pts, int** simplex_list,
                        int* num, int dims);
 
-int griddata_triangles(double* points, int num_pts, int** tri_list, int* num);
-
 #endif
