@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../../qhull/src/libqhull_r/libqhull_r.h"
+#include <libqhull_r/libqhull_r.h>
 #include "../include/delaunator.h"
 #include "../include/interpolation.h"
 
@@ -73,7 +73,7 @@ int interpolation_qhull(void) {
   double interp_values[] = {0.0, 0.0};
 
   result = griddata(points, point_values, NUM_KNOWN_POINTS, interp_points,
-                    interp_values, NUM_INTERP_POINTS, FILL_VALUE);
+                    interp_values, NUM_INTERP_POINTS, FILL_VALUE, 2);
   if (result != 0) {
     fprintf(stderr, "Interpolation failed\n");
   }
@@ -100,7 +100,7 @@ int interpolation_delaunator(void) {
   double interp_values[] = {0.0, 0.0};
 
   result = griddata(points, point_values, NUM_KNOWN_POINTS, interp_points,
-                    interp_values, NUM_INTERP_POINTS, FILL_VALUE);
+                    interp_values, NUM_INTERP_POINTS, FILL_VALUE, 2);
   if (result != 0) {
     fprintf(stderr, "Interpolation failed\n");
   }
@@ -121,7 +121,7 @@ int triangle_mesh_qhull(void) {
 
   int *triangle_list = NULL;
   int num_triangles = -1;
-  griddata_triangles(points, NUM_KNOWN_POINTS, &triangle_list, &num_triangles);
+  griddata_triangles(points, NUM_KNOWN_POINTS, &triangle_list, &num_triangles, 2);
 
   printf(" >>>>>>  QHULL  <<<<<<<\n");
   printf("Number of triangles ==> %d\n", num_triangles);

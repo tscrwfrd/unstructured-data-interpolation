@@ -3,9 +3,9 @@ BUILD_DIR = build
 BIN_DIR = bin
 SRC_DIR = src
 TEST_DIR = tests
-FLAGS = -std=c99 -c -fPIC -g -Wall -include lib/qhull/src/libqhull_r/qhull_ra.h
-LFLAGS = -L lib/qhull/lib -lqhull_r -lqhullstatic_r -lqhullstatic -lm
-TEST_FLAGS = -g -Wall -I/usr/include/cmocka -include lib/qhull/src/libqhull_r/qhull_ra.h
+FLAGS = -std=c99 -c -fPIC -g -Wall -include /usr/include/libqhull_r/qhull_ra.h
+LFLAGS = -lqhull_r -lm
+TEST_FLAGS = -g -Wall -I/usr/include/cmocka -include /usr/include/libqhull_r/qhull_ra.h
 OUTPUT_SO = $(BIN_DIR)/libgriddata.so
 
 # Source files (excluding examples.c)
