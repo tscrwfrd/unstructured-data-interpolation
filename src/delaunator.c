@@ -33,8 +33,7 @@ static int in_circle(const double ax, const double ay, const double bx,
  */
 static void link(int a, int b, Delaunator *d) {
   d->half_edges[a] = b;
-  if (b != -1)
-    d->half_edges[b] = a;
+  if (b != -1) d->half_edges[b] = a;
 }
 
 /**
@@ -68,8 +67,7 @@ static int legalize(int a, Delaunator *d) {
 
     // convex hull edge
     if (b == -1) {
-      if (i == 0)
-        break;
+      if (i == 0) break;
       a = d->edge_stack[--i];
       continue;
     }
@@ -113,12 +111,11 @@ static int legalize(int a, Delaunator *d) {
         d->edge_stack[i++] = br;
       }
     } else {
-      if (i == 0)
-        break;
+      if (i == 0) break;
       a = d->edge_stack[--i];
     }
 
-  } // while
+  }  // while
 
   return ar;
 }
@@ -400,12 +397,9 @@ static void quicksort(unsigned int *ids, double *dists, int left, int right) {
     int i = left + 1;
     int j = right;
     swap(ids, median, i);
-    if (dists[ids[left]] > dists[ids[right]])
-      swap(ids, left, right);
-    if (dists[ids[i]] > dists[ids[right]])
-      swap(ids, i, right);
-    if (dists[ids[left]] > dists[ids[i]])
-      swap(ids, left, i);
+    if (dists[ids[left]] > dists[ids[right]]) swap(ids, left, right);
+    if (dists[ids[i]] > dists[ids[right]]) swap(ids, i, right);
+    if (dists[ids[left]] > dists[ids[i]]) swap(ids, left, i);
 
     int temp = ids[i];
     double temp_dist = dists[temp];
@@ -416,8 +410,7 @@ static void quicksort(unsigned int *ids, double *dists, int left, int right) {
       do {
         j--;
       } while (dists[ids[j]] > temp_dist);
-      if (j < i)
-        break;
+      if (j < i) break;
       swap(ids, i, j);
     }
     ids[left + 1] = ids[j];
@@ -489,8 +482,7 @@ static double dist(double ax, double ay, double bx, double by) {
  */
 Delaunator *delaunator_create(double *coords, int num_coords) {
   Delaunator *d = (Delaunator *)malloc(sizeof(Delaunator));
-  if (!d)
-    return NULL;
+  if (!d) return NULL;
 
   unsigned int num_points = num_coords >> 1;
   d->num_coords = num_coords;
@@ -534,14 +526,10 @@ void update(Delaunator *del) {
   for (int i = 0; i < n; i++) {
     const double x = coords[2 * i];
     const double y = coords[2 * i + 1];
-    if (x < min_x)
-      min_x = x;
-    if (y < min_y)
-      min_y = y;
-    if (x > max_x)
-      max_x = x;
-    if (y > max_y)
-      max_y = y;
+    if (x < min_x) min_x = x;
+    if (y < min_y) min_y = y;
+    if (x > max_x) max_x = x;
+    if (y > max_y) max_y = y;
     del->ids[i] = i;
   }
   const double cx = (min_x + max_x) / 2.0;
@@ -564,8 +552,7 @@ void update(Delaunator *del) {
   // find the point closest to the seed
   min_dist = INFINITY;
   for (int i = 0; i < n; i++) {
-    if (i == i0)
-      continue;
+    if (i == i0) continue;
     const double d = dist(i0x, i0y, coords[2 * i], coords[2 * i + 1]);
     if (d < min_dist && d > 0.0) {
       i1 = i;
@@ -579,8 +566,7 @@ void update(Delaunator *del) {
   // find the third point which forms the smallest circumcircle with the first
   // two
   for (int i = 0; i < n; i++) {
-    if (i == i0 || i == i1)
-      continue;
+    if (i == i0 || i == i1) continue;
     const double r =
         circumradius(i0x, i0y, i1x, i1y, coords[2 * i], coords[2 * i + 1]);
     if (r < min_radius) {
@@ -614,8 +600,7 @@ void update(Delaunator *del) {
     }
     // allocation here
     del->hull = (unsigned *)malloc(j * sizeof(unsigned));
-    for (int i = 0; i < j; i++)
-      del->hull[i] = hull[i];
+    for (int i = 0; i < j; i++) del->hull[i] = hull[i];
     free(hull);
     return;
   }
@@ -672,23 +657,20 @@ void update(Delaunator *del) {
     const double y = del->coords[2 * i + 1];
 
     // skip near-duplicate points
-    if (k > 0 && fabs(x - xp) <= EPSILON && fabs(y - yp) <= EPSILON)
-      continue;
+    if (k > 0 && fabs(x - xp) <= EPSILON && fabs(y - yp) <= EPSILON) continue;
     // tracking previous coords
     xp = x;
     yp = y;
 
     // skip seed triangle points
-    if (i == i0 || i == i1 || i == i2)
-      continue;
+    if (i == i0 || i == i1 || i == i2) continue;
 
     // find visible edge on the convex hull using edge hash
     int start = 0;
     int key = hash_key(x, y, del);
     for (int j = 0; j < del->hash_size; j++) {
       start = del->hull_hash[(key + j) % del->hash_size];
-      if (start != -1 && start != del->hull_next[start])
-        break;
+      if (start != -1 && start != del->hull_next[start]) break;
     }
 
     start = del->hull_prev[start];
@@ -707,8 +689,7 @@ void update(Delaunator *del) {
       }
     }
     // likely a near-duplicate point; skip it
-    if (e == -1)
-      continue;
+    if (e == -1) continue;
 
     // add the first triangle from the point
     int t =
@@ -768,7 +749,7 @@ void update(Delaunator *del) {
     del->hull_hash[hash_key(x, y, del)] = i;
     del->hull_hash[hash_key(coords[2 * e], coords[2 * e + 1], del)] = e;
 
-  } // end for loop k
+  }  // end for loop k
 
   del->hull = (unsigned *)malloc(hull_size * sizeof(unsigned int));
   unsigned int e = del->hull_start;
