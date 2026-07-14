@@ -145,6 +145,7 @@ static void test_griddata_3d_min_points_error(void **state) {
   assert_int_equal(rc, QHULL_GENERAL_ERROR);
 }
 
+
 int main(void) {
   const struct CMUnitTest test[] = {
     cmocka_unit_test(test_equilateral_triangle),
